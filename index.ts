@@ -175,3 +175,25 @@ export class SurvivorSystem {
     entity.actionsRemaining--;
   }
 }
+
+export class Game {
+  public survivors: Survivor[] = []
+
+  constructor() {}
+
+  public addSurvivor(survivor: Survivor) {
+    const newName = survivor.get(NameComponent) as NameComponent;
+    const existingSurvivor = this.survivors.some((value) => {
+      const name = value.get(NameComponent) as NameComponent;
+      return name.name === newName.name;
+    })
+
+    if (existingSurvivor) return
+
+    this.survivors.push(survivor);
+  }
+
+  public get isGameOver() {
+    return this.survivors.every(s => !s.isAlive);
+  }
+}

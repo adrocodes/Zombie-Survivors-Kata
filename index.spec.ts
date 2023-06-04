@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { AliveComponent, EquipmentCapacitySystem, EquipmentComponent, EquipmentSystem, Survivor, SurvivorSystem, WoundComponent, WoundSystem } from ".";
+import { AliveComponent, EquipmentCapacitySystem, EquipmentComponent, EquipmentSystem, Game, Survivor, SurvivorSystem, WoundComponent, WoundSystem } from ".";
 
 describe("Wounds", () => {
   test("Entity starts with 0 wounds", () => {
@@ -110,5 +110,39 @@ describe("Equipment", () => {
 
     expect(equip.inReserveCapacity).toBe(2);
     expect(equip.inReserve).toEqual(["Knife", "Water Bottle"]);
+  })
+})
+
+describe("Game", () => {
+  test("Can add survivor to game", () => {
+    const survivor = new Survivor("Bob");
+    const game = new Game();
+
+    game.addSurvivor(survivor);
+
+    expect(game.survivors).toContain(survivor);
+  })
+
+  test("Survivors must have unique names", () => {
+    const survivor = new Survivor("Bob");
+    const game = new Game();
+
+    game.addSurvivor(survivor);
+    game.addSurvivor(survivor);
+
+    expect(game.survivors).toEqual([survivor]);
+  })
+
+  test("Game is over when all survivors are dead", () => {
+    const survivor = new Survivor("Bob");
+    const game = new Game();
+
+    game.addSurvivor(survivor);
+    WoundSystem.update(survivor);
+    WoundSystem.update(survivor);
+    WoundSystem.update(survivor);
+    SurvivorSystem.update(survivor);
+
+    expect(game.isGameOver).toBe(true);
   })
 })
