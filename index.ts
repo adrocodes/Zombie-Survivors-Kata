@@ -28,6 +28,31 @@ export class Entity {
   }
 }
 
+export class GameEventLog {
+  public static instance: GameEventLog;
+  
+  private _log: string[] = [];
+
+  private constructor() {}
+
+  public static getInstance() {
+    if (!this.instance) {
+      this.instance = new GameEventLog();
+    }
+
+    return this.instance;
+  }
+
+  public add(entity: Entity, message: string) {
+    const name = entity.get(NameComponent) as (NameComponent | undefined);
+    this._log.push(`[${name ? name.name : entity.id}]: ${message}`);
+  }
+
+  public get log() {
+    return this._log.join("\n");
+  }
+}
+
 export class NameComponent implements Component {
   constructor(public name: string) {}
 }
@@ -42,6 +67,7 @@ export class WoundSystem {
     if (!wound) return;
 
     wound.value = Math.min(wound.max, wound.value + 1);
+    GameEventLog.getInstance().add(entity, `Took a wound`);
   }
 }
 
@@ -87,6 +113,8 @@ export class EquipmentSystem {
     if (hand === "inReserve") {
       equipment.addInReserve(item);
     }
+
+    GameEventLog.getInstance().add(entity, `Equipped ${item}`);
   }
 
   static unequip(entity: Entity, item: string, hand: "inHand" | "inReserve") {
@@ -101,6 +129,8 @@ export class EquipmentSystem {
     if (hand === "inReserve") {
       equipment.removeInReserve(item);
     }
+
+    GameEventLog.getInstance().add(entity, `Unequipped ${item}`);
   }
 }
 
@@ -152,16 +182,21 @@ export class ExperienceSystem {
 
     if (!experience) return;
 
-    if (experience.value >= 6) {
-      experience.level = "yellow";
-    }
-
-    if (experience.value >= 18) {
-      experience.level = "orange";
-    }
+    let levelUp = false;
 
     if (experience.value >= 42) {
       experience.level = "red";
+      levelUp = true;
+    } else if (experience.value >= 18) {
+      experience.level = "orange";
+      levelUp = true;
+    } else if (experience.value >= 6) {
+      experience.level = "yellow";
+      levelUp = true;
+    }
+
+    if (levelUp) {
+      GameEventLog.getInstance().add(entity, `Leveled up to ${experience.level}`);
     }
   }
 }
@@ -201,6 +236,7 @@ export class SurvivorSystem {
     // Kill Survivor if wounds are too high
     if (wound.value >= wound.max) {
       alive.alive = false;
+      GameEventLog.getInstance().add(entity, `Died`);
       return;
     }
   }
@@ -217,10 +253,19 @@ export class SurvivorSystem {
 
 export class Game extends Entity {
   public survivors: Survivor[] = []
+  private eventLog = GameEventLog.getInstance();
 
   constructor() {
     super()
-    this.add(new ExperienceComponent());
+    this
+      .add(new NameComponent("Zombicide"))
+      .add(new ExperienceComponent());
+
+    this.eventLog.add(this, `Game started at ${new Date().toLocaleTimeString()}`);
+  }
+
+  public get logs() {
+    return this.eventLog.log;
   }
 
   public addSurvivor(survivor: Survivor) {
@@ -232,11 +277,18 @@ export class Game extends Entity {
 
     if (existingSurvivor) return
 
+    this.eventLog.add(survivor, `Joined the game`);
     this.survivors.push(survivor);
   }
 
   public get isGameOver() {
-    return this.survivors.every(s => !s.isAlive);
+    const isOver = this.survivors.every(s => !s.isAlive);
+
+    if (isOver) {
+      this.eventLog.add(this, `Game over`);
+    }
+
+    return isOver
   }
 
   public levelUp() {

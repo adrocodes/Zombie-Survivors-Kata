@@ -209,3 +209,34 @@ describe("Experience", () => {
     expect(exp.level).toBe("red");
   })
 })
+
+describe("GameEventLog", () => {
+  test("Can add event to log", () => {
+    const survivor = new Survivor("Bob");
+    const game = new Game();
+
+    game.addSurvivor(survivor);
+    WoundSystem.update(survivor);
+
+    EquipmentSystem.equip(survivor, "Knife", "inReserve");
+
+    ExperienceSystem.gain(survivor, 6);
+    ExperienceSystem.levelUp(survivor);
+    game.levelUp()
+
+    WoundSystem.update(survivor);
+    WoundSystem.update(survivor);
+    SurvivorSystem.update(survivor);
+
+    game.isGameOver
+
+    expect(game.logs).toContain("Game started")
+    expect(game.logs).toContain("[Bob]: Joined the game")
+    expect(game.logs).toContain("[Bob]: Took a wound")
+    expect(game.logs).toContain("[Bob]: Equipped Knife")
+    expect(game.logs).toContain("[Bob]: Died")
+    expect(game.logs).toContain("[Bob]: Leveled up to yellow")
+    expect(game.logs).toContain("[Zombicide]: Leveled up to yellow")
+    expect(game.logs).toContain("[Zombicide]: Game over")
+  })
+})
