@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { AliveComponent, EquipmentCapacitySystem, EquipmentComponent, EquipmentSystem, Game, Survivor, SurvivorSystem, WoundComponent, WoundSystem } from ".";
+import { AliveComponent, EquipmentCapacitySystem, EquipmentComponent, EquipmentSystem, ExperienceComponent, ExperienceSystem, Game, Survivor, SurvivorSystem, WoundComponent, WoundSystem } from ".";
 
 describe("Wounds", () => {
   test("Entity starts with 0 wounds", () => {
@@ -75,6 +75,13 @@ describe("Survivor", () => {
 
     expect(survivor.actionsRemaining).toBe(0);
   })
+
+  test("Survivor gains 1 exp for a kill", () => {
+    const survivor = new Survivor("Bob");
+    survivor.kill();
+
+    expect((survivor.get(ExperienceComponent) as ExperienceComponent).value).toBe(1);
+  })
 })
 
 describe("Equipment", () => {
@@ -144,5 +151,61 @@ describe("Game", () => {
     SurvivorSystem.update(survivor);
 
     expect(game.isGameOver).toBe(true);
+  })
+
+  test("Game level matches highest survivor", () => {
+    const survivor = new Survivor("Bob");
+    const survivor2 = new Survivor("Alice");
+    const game = new Game();
+
+    game.addSurvivor(survivor);
+    game.addSurvivor(survivor2);
+    ExperienceSystem.gain(survivor, 6);
+    ExperienceSystem.levelUp(survivor);
+
+    game.levelUp()
+
+    const gameExp = game.get(ExperienceComponent) as ExperienceComponent;
+
+    expect(gameExp.level).toBe("yellow");
+  })
+})
+
+describe("Experience", () => {
+  test("Experience stats with 0 and level blue", () => {
+    const exp = new ExperienceComponent()
+
+    expect(exp.value).toBe(0);
+    expect(exp.level).toBe("blue");
+  })
+
+  test("levels up to yellow at 6 experience", () => {
+    const survivor = new Survivor("Bob");
+    ExperienceSystem.gain(survivor, 6);
+    ExperienceSystem.levelUp(survivor);
+
+    const exp = survivor.get(ExperienceComponent) as ExperienceComponent;
+
+    expect(exp.level).toBe("yellow");
+  })
+
+  test("levels up to orange at 18 experience", () => {
+    const survivor = new Survivor("Bob");
+    ExperienceSystem.gain(survivor, 18);
+    ExperienceSystem.levelUp(survivor);
+
+    const exp = survivor.get(ExperienceComponent) as ExperienceComponent;
+
+    expect(exp.level).toBe("orange");
+  })
+
+  test("levels up to red at 42 experience", () => {
+    const survivor = new Survivor("Bob");
+    ExperienceSystem.gain(survivor, 42);
+    ExperienceSystem.levelUp(survivor);
+
+    const exp = survivor.get(ExperienceComponent) as ExperienceComponent;
+
+    expect(exp.level).toBe("red");
   })
 })

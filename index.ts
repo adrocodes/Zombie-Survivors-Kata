@@ -133,6 +133,39 @@ export class EquipmentCapacitySystem {
   }
 }
 
+export class ExperienceComponent implements Component {
+  public value = 0;
+  public level: "blue" | "yellow" | "orange" | "red" = "blue";
+}
+
+export class ExperienceSystem {
+  static gain(entity: Entity, amount: number) {
+    const experience = entity.get(ExperienceComponent) as (ExperienceComponent | undefined);
+
+    if (!experience) return;
+
+    experience.value += amount;
+  }
+
+  static levelUp(entity: Entity) {
+    const experience = entity.get(ExperienceComponent) as (ExperienceComponent | undefined);
+
+    if (!experience) return;
+
+    if (experience.value >= 6) {
+      experience.level = "yellow";
+    }
+
+    if (experience.value >= 18) {
+      experience.level = "orange";
+    }
+
+    if (experience.value >= 42) {
+      experience.level = "red";
+    }
+  }
+}
+
 export class Survivor extends Entity {
   public static actionsPerTurn = 3;
   public actionsRemaining = Survivor.actionsPerTurn;
@@ -143,11 +176,17 @@ export class Survivor extends Entity {
       .add(new NameComponent(name))
       .add(new WoundComponent(0, 2))
       .add(new AliveComponent(true))
-      .add(new EquipmentComponent([], []));
+      .add(new EquipmentComponent([], []))
+      .add(new ExperienceComponent());
   }
 
   get isAlive() {
     return (this.get(AliveComponent) as AliveComponent).alive;
+  }
+
+  public kill() {
+    ExperienceSystem.gain(this, 1);
+    ExperienceSystem.levelUp(this);
   }
 }
 
@@ -176,10 +215,13 @@ export class SurvivorSystem {
   }
 }
 
-export class Game {
+export class Game extends Entity {
   public survivors: Survivor[] = []
 
-  constructor() {}
+  constructor() {
+    super()
+    this.add(new ExperienceComponent());
+  }
 
   public addSurvivor(survivor: Survivor) {
     const newName = survivor.get(NameComponent) as NameComponent;
@@ -195,5 +237,15 @@ export class Game {
 
   public get isGameOver() {
     return this.survivors.every(s => !s.isAlive);
+  }
+
+  public levelUp() {
+    const highestExperience = this.survivors.reduce((highest, survivor) => {
+      const experience = survivor.get(ExperienceComponent) as ExperienceComponent;
+      return Math.max(highest, experience.value);
+    }, 0)
+
+    ExperienceSystem.gain(this, highestExperience);
+    ExperienceSystem.levelUp(this);
   }
 }
